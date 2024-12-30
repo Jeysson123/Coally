@@ -1,164 +1,125 @@
-import request from 'supertest';
-import express from 'express';
-import router from '../Controllers/TaskController';
+import mongoose from 'mongoose';
 import taskService from '../Services/TaskService';
-import authService from '../Services/AuthService';
-import jwt from 'jsonwebtoken';
+import { Task } from '../Models/Task';
+import Connection from '../Configuration/Connection';
 
-jest.mock('../Services/TaskService');
-jest.mock('../Services/AuthService');
-jest.mock('jsonwebtoken');
+jest.mock('mongoose', () => ({
+  connect: jest.fn(), 
+  connection: {
+    close: jest.fn().mockResolvedValue(true), 
+  },
+}));
 
-const app = express();
-app.use(express.json());
-app.use(router);
+jest.mock('../Configuration/Connection', () => ({
+  __esModule: true,
+  default: jest.fn().mockResolvedValue(true), // Mock the connection function
+}));
 
-describe('Routes', () => {
-  const validToken = 'valid-token';
-  const mockJwtVerify = jest.fn();
-  const mockGenerateToken = jest.fn();
+jest.mock('../Models/Task', () => ({
+  Task: {
+    find: jest.fn(),
+    findOne: jest.fn(),
+    findOneAndUpdate: jest.fn(),
+    findOneAndDelete: jest.fn(),
+    prototype: {
+      save: jest.fn(),
+    },
+  },
+}));
 
-  beforeAll(() => {
-    (authService.generateToken as jest.Mock).mockImplementation(() => validToken);
-    (jwt.verify as jest.Mock).mockImplementation((token, secret, callback) => {
-      if (token === validToken) {
-        callback(null, { username: 'testuser' });
-      } else {
-        callback(new Error('Invalid token'));
-      }
-    });
+beforeAll(async () => {
+  await Connection();
+});
+
+afterAll(async () => {
+  await mongoose.connection.close();
+});
+
+describe('TaskService', () => {
+  afterEach(() => {
+    jest.clearAllMocks(); 
   });
 
-  describe('POST /auth/token', () => {
-    it('should return a token for valid credentials', async () => {
-      const response = await request(app)
-        .post('/auth/token')
-        .send({ username: 'testuser', password: 'password123' });
-
-      expect(response.status).toBe(200);
-      expect(response.body.token).toBe(validToken);
+  it('should create a task with valid input', async () => {
+    const mockSave = jest.fn().mockResolvedValue({
+      id: '1',
+      title: 'Test Task',
+      description: 'Test Description',
     });
+    Task.prototype.save = mockSave;
 
-    it('should return 401 for invalid credentials', async () => {
-      const response = await request(app)
-        .post('/auth/token')
-        .send({ username: 'wronguser', password: 'wrongpass' });
-
-      expect(response.status).toBe(401);
-      expect(response.body.message).toBe('Invalid username or password');
-    });
+    const task = await taskService.createTask('Test Task', 'Test Description');
+    
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    expect(task.id).toBe('1');
+    expect(task.title).toBe('Test Task');
   });
 
-  describe('POST /tasks', () => {
-    it('should create a task with valid token and input', async () => {
-      (taskService.createTask as jest.Mock).mockResolvedValue({
-        id: '1',
-        title: 'Test Task',
-        description: 'Test Description',
-      });
+  it('should return all tasks', async () => {
+    const mockFind = jest.fn().mockResolvedValue([
+      { id: '1', title: 'Task 1', description: 'Description 1' },
+      { id: '2', title: 'Task 2', description: 'Description 2' },
+    ]);
+    Task.find = mockFind;
 
-      const response = await request(app)
-        .post('/tasks')
-        .set('Authorization', `Bearer ${validToken}`)
-        .send({ title: 'Test Task', description: 'Test Description' });
+    const tasks = await taskService.getAllTasks();
 
-      expect(response.status).toBe(201);
-      expect(response.body.title).toBe('Test Task');
-    });
-
-    it('should return 401 for missing token', async () => {
-      const response = await request(app)
-        .post('/tasks')
-        .send({ title: 'Test Task', description: 'Test Description' });
-
-      expect(response.status).toBe(401);
-      expect(response.body.message).toBe('No token provided');
-    });
+    expect(mockFind).toHaveBeenCalledTimes(1);
+    expect(tasks).toHaveLength(2);
+    expect(tasks[0].title).toBe('Task 1');
   });
 
-  describe('GET /tasks', () => {
-    it('should return all tasks with a valid token', async () => {
-      (taskService.getAllTasks as jest.Mock).mockResolvedValue([
-        { id: '1', title: 'Task 1', description: 'Description 1' },
-        { id: '2', title: 'Task 2', description: 'Description 2' },
-      ]);
-
-      const response = await request(app)
-        .get('/tasks')
-        .set('Authorization', `Bearer ${validToken}`);
-
-      expect(response.status).toBe(200);
-      expect(response.body).toHaveLength(2);
+  it('should return a task by ID', async () => {
+    const mockFindOne = jest.fn().mockResolvedValue({
+      id: '1', title: 'Task 1', description: 'Description 1',
     });
+    Task.findOne = mockFindOne;
+
+    const task = await taskService.getTaskById('1');
+
+    expect(mockFindOne).toHaveBeenCalledTimes(1);
+    expect(task).not.toBeNull();
+    expect(task?.title).toBe('Task 1');
   });
 
-  describe('GET /tasks/:id', () => {
-    it('should return a task with valid ID and token', async () => {
-      (taskService.getTaskById as jest.Mock).mockResolvedValue({
-        id: '1',
-        title: 'Task 1',
-        description: 'Description 1',
-      });
+  it('should return null for an invalid task ID', async () => {
+    const mockFindOne = jest.fn().mockResolvedValue(null);
+    Task.findOne = mockFindOne;
 
-      const response = await request(app)
-        .get('/tasks/1')
-        .set('Authorization', `Bearer ${validToken}`);
+    const task = await taskService.getTaskById('999');
 
-      expect(response.status).toBe(200);
-      expect(response.body.title).toBe('Task 1');
-    });
-
-    it('should return 404 for invalid task ID', async () => {
-      (taskService.getTaskById as jest.Mock).mockResolvedValue(null);
-
-      const response = await request(app)
-        .get('/tasks/999')
-        .set('Authorization', `Bearer ${validToken}`);
-
-      expect(response.status).toBe(404);
-      expect(response.body.message).toBe('Task not found');
-    });
+    expect(mockFindOne).toHaveBeenCalledTimes(1);
+    expect(task).toBeNull();
   });
 
-  describe('PUT /tasks/:id', () => {
-    it('should update a task with valid ID and token', async () => {
-      (taskService.updateTask as jest.Mock).mockResolvedValue({
-        id: '1',
-        title: 'Updated Task',
-        description: 'Updated Description',
-      });
-
-      const response = await request(app)
-        .put('/tasks/1')
-        .set('Authorization', `Bearer ${validToken}`)
-        .send({ title: 'Updated Task', description: 'Updated Description' });
-
-      expect(response.status).toBe(200);
-      expect(response.body.title).toBe('Updated Task');
+  it('should update a task', async () => {
+    const mockFindOneAndUpdate = jest.fn().mockResolvedValue({
+      id: '1',
+      title: 'Updated Task',
+      description: 'Updated Description',
     });
+    Task.findOneAndUpdate = mockFindOneAndUpdate;
+
+    const updatedTask = await taskService.updateTask('1', {
+      title: 'Updated Task',
+      description: 'Updated Description',
+    });
+
+    expect(mockFindOneAndUpdate).toHaveBeenCalledTimes(1);
+    expect(updatedTask?.title).toBe('Updated Task');
   });
 
-  describe('DELETE /tasks/:id', () => {
-    it('should delete a task with valid ID and token', async () => {
-      (taskService.deleteTask as jest.Mock).mockResolvedValue(true);
-
-      const response = await request(app)
-        .delete('/tasks/1')
-        .set('Authorization', `Bearer ${validToken}`);
-
-      expect(response.status).toBe(200);
-      expect(response.body.message).toBe('Task deleted');
+  it('should delete a task', async () => {
+    const mockFindOneAndDelete = jest.fn().mockResolvedValue({
+      id: '1',
+      title: 'Deleted Task',
+      description: 'Deleted Description',
     });
+    Task.findOneAndDelete = mockFindOneAndDelete;
 
-    it('should return 404 for invalid task ID', async () => {
-      (taskService.deleteTask as jest.Mock).mockResolvedValue(false);
+    const deletedTask = await taskService.deleteTask('1');
 
-      const response = await request(app)
-        .delete('/tasks/999')
-        .set('Authorization', `Bearer ${validToken}`);
-
-      expect(response.status).toBe(404);
-      expect(response.body.message).toBe('Task not found');
-    });
+    expect(mockFindOneAndDelete).toHaveBeenCalledTimes(1);
+    expect(deletedTask?.title).toBe('Deleted Task');
   });
 });

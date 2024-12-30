@@ -1,14 +1,12 @@
 {
   "compilerOptions": {
-    "target": "ES6",                         
-    "module": "CommonJS",                    
-    "outDir": "./dist",                       
-    "rootDir": "./src",                       
-    "esModuleInterop": true,                  
-    "strict": true,                           
-    "skipLibCheck": true,                     
-    "forceConsistentCasingInFileNames": true 
+    "target": "ES6",                          // Use ES6 as the target
+    "module": "CommonJS",                      // Use CommonJS for Node.js
+    "esModuleInterop": true,                   // Ensure compatibility with CommonJS
+    "skipLibCheck": true,                      // Skip library check for faster builds
+    "strict": true,                            // Enable strict mode for better type-checking
+    "moduleResolution": "node"                 // Enable Node.js style module resolution
   },
-  "include": ["src/**/*", "__tests__/**/*"],
-  "exclude": ["node_modules"]  
+  "include": ["src/**/*", "__tests__/**/*"],   // Include your source and test files
+  "exclude": ["node_modules"]                  // Exclude node_modules
 }

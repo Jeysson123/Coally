@@ -1,11 +1,14 @@
 import React, { useState } from "react";
+import { useDispatch } from "react-redux";
 import axios from "axios";
+import { setError } from "../../Actions/TaskAction";
 import completedImage from "../../assets/completed.png";
 import pendingImage from "../../assets/pending.png";
 import editIcon from "../../assets/editicon.png";
 import deleteIcon from "../../assets/deleteicon.png";
 
 const Task = ({ task, onStatusChange }) => {
+  const dispatch = useDispatch();
   const { id, title, description, createdAt, completed: initialStatus } = task;
   const [status, setStatus] = useState(initialStatus);
   const [isEditing, setIsEditing] = useState(false);
@@ -43,9 +46,9 @@ const Task = ({ task, onStatusChange }) => {
         }
       );
       setStatus(newStatus);
-      onStatusChange(id, newStatus);
+      //onStatusChange(id, newStatus);
     } catch (err) {
-      setError(err.message || "Failed to update status");
+      dispatch(setError(err.message || "Failed to update status"));
     }
   };
 
@@ -61,7 +64,7 @@ const Task = ({ task, onStatusChange }) => {
       });
       console.log("Task deleted", id);
     } catch (err) {
-      setError(err.message || "Failed to delete task");
+      dispatch(setError(err.message || "Failed to delete task"));
     }
   };
 
@@ -87,7 +90,7 @@ const Task = ({ task, onStatusChange }) => {
       setIsEditing(false);
       setStatus(updatedStatus);
     } catch (err) {
-      setError(err.message || "Failed to update task");
+      dispatch(setError(err.message || "Failed to update task"));
     }
   };
 

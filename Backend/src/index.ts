@@ -15,6 +15,7 @@ const swaggerOptions = {
       description: 'Task Management API',
       version: '1.0.0',
     },
+    basePath: '/api',
   },
   apis: ['./src/Controllers/*.ts'],  
 };
