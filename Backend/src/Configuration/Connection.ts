@@ -2,7 +2,9 @@ import mongoose from 'mongoose';
 
 const Connection = async () => {
   try {
-    await mongoose.connect('mongodb://localhost:27017/coally', {
+    //PROD :: mongodb+srv://jeyssonpaypal:lPreQkkFZlT4dx0H@cluster0.mongodb.net/Coally?retryWrites=true&w=majority
+    //LOCAL :: mongodb://localhost:27017/coally
+    await mongoose.connect('mongodb+srv://jeyssonpaypal:lPreQkkFZlT4dx0H@cluster0.s23cc.mongodb.net/Coally?retryWrites=true&w=majority', {
     });
     console.log('Connected to MongoDB');
   } catch (err) {

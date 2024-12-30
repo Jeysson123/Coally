@@ -37,7 +37,7 @@ const Task = ({ task, onStatusChange }) => {
     try {
       const newStatus = !status;
       await axios.put(
-        `/api/tasks/${id}`,
+        `https://coally-backend.up.railway.app/api/tasks/${id}`,
         { ...task, completed: newStatus },
         {
           headers: {

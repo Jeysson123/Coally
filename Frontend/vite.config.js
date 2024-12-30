@@ -6,7 +6,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:5000', // Backend server
+        //target: 'http://localhost:5000', // Backend server
+        target: 'https://coally-backend.up.railway.app/',
         changeOrigin: true,
         secure: false,
       },

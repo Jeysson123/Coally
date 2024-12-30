@@ -39,5 +39,5 @@
     "vite": "^6.0.5",
     "vitest": "^2.1.8"
   },
-  "proxy": "http://localhost:5000"
+  "proxy":"https://coally-backend.up.railway.app/"
 }
