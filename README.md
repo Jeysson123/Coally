@@ -23,11 +23,12 @@ This module is a Rest API service mounted with Node 18.
 
 1 - Deploy this module in your preferred IDE & npm install to inject all local depends.
 
+2 - Start the service, simply by running npm start.
+
 ## Demos 🔧
 
 - Backend : https://coally-backend.up.railway.app/api/tasks/docs/
 - Frontend : https://coally-frontend.netlify.app/
 
 
-2 - Start the service, simply by running npm start.
 
